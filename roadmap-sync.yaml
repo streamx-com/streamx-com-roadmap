@@ -6,8 +6,10 @@
 
 jira:
   jql: >
-    issuetype = Epic
-    AND "Ready for Public Roadmap" = Published
+    project = "STX"
+    AND issuetype = Epic
+    AND "Ready for public roadmap" = Published
+    AND ("Public Roadmap Title" is NOT EMPTY AND "Public Roadmap Summary"  is NOT EMPTY)
   fields:
     public_title: customfield_11121   # Public Roadmap Title
     public_summary: customfield_11122 # Public Roadmap Summary (→ issue body)
