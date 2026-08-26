@@ -26,11 +26,11 @@ github:
       "Waiting for Design": Acknowledged
       "IN DESIGN": Planned
       Designed: Planned
-      Done: done
+      Done: Done
       # DS Product Core Development workflow
       Backlog: Acknowledged
       "To Do": Planned
       "Under review": "In progress"
-      Closed: done
+      Closed: Done
       # Shared by both workflows
       "In progress": "In progress"

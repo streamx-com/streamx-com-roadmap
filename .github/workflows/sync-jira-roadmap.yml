@@ -1,10 +1,15 @@
 name: Sync Jira public roadmap
 
-on:
-  # Optional safety net — full JQL reconcile. Disable if you only want webhook-driven sync.
-  schedule:
-    - cron: "0 3 * * 0"   # weekly, Sunday 03:00 UTC
+# Webhook-driven sync. Deliberately has NO `schedule:` trigger.
+#
+# GitHub auto-disables *scheduled* workflows after 60 days without a pushed
+# commit, and that disable applies to the whole workflow file — every trigger
+# in it, not just the cron. Keeping the Jira-driven path in its own
+# schedule-free file means it can never be caught by that.
+#
+# The periodic full reconcile lives in reconcile-jira-roadmap.yml.
 
+on:
   workflow_dispatch:
     inputs:
       jira_issue_key:

@@ -1,0 +1,68 @@
+name: Reconcile Jira public roadmap
+
+# Weekly safety-net reconcile (full JQL sweep), plus the keepalive commit that
+# stops GitHub from auto-disabling this workflow after 60 days of no commits.
+#
+# This is the only workflow in the repo with a `schedule:` trigger, so it is
+# the only one that can ever be auto-disabled — and the keepalive step exists
+# to make sure that does not happen.
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"   # weekly, Sunday 03:00 UTC
+
+  workflow_dispatch:
+
+permissions:
+  contents: write   # keepalive step pushes a commit
+  issues: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install requests pyyaml
+
+      - name: Full reconcile (Jira → GitHub Issues + Project)
+        env:
+          JIRA_BASE_URL: ${{ secrets.JIRA_BASE_URL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.ROADMAP_SYNC_GITHUB_TOKEN }}
+          JIRA_GITHUB_USER_MAP: ${{ secrets.JIRA_GITHUB_USER_MAP }}
+          ROADMAP_SYNC_CONFIG: roadmap-sync.yaml
+          JIRA_ISSUE_KEY: ""   # empty ⇒ full JQL reconcile
+        run: python scripts/sync_jira_roadmap.py
+
+      # Runs even when the reconcile above fails: a broken sync must not be
+      # allowed to let the workflow lapse into the 60-day auto-disable.
+      - name: Keepalive commit
+        if: always()
+        env:
+          KEEPALIVE_AFTER_DAYS: "45"
+        run: |
+          set -euo pipefail
+          last_commit_ts="$(git log -1 --format=%ct)"
+          now_ts="$(date -u +%s)"
+          age_days=$(( (now_ts - last_commit_ts) / 86400 ))
+          echo "Last commit: ${age_days} day(s) ago (keepalive threshold: ${KEEPALIVE_AFTER_DAYS}, GitHub disables at 60)."
+
+          if [ "${age_days}" -lt "${KEEPALIVE_AFTER_DAYS}" ]; then
+            echo "Repository active recently enough — no keepalive commit needed."
+            exit 0
+          fi
+
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .github/last-keepalive
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .github/last-keepalive
+          git commit -m "chore: keepalive commit to prevent scheduled workflow auto-disable"
+          git push
+          echo "Pushed keepalive commit — 60-day inactivity clock reset."

@@ -403,12 +403,21 @@ def option_id(project_id: str, field_id: str, name: str) -> str:
         """,
         {"p": project_id},
     )
+    # Column names are matched case-insensitively, mirroring how Jira statuses
+    # are matched in project_column_for_epic(). Keeps a config/board casing
+    # drift (e.g. "done" vs "Done") from hard-failing the whole run.
+    target = name.strip().casefold()
+    available: list[str] = []
     for field in data["node"]["fields"]["nodes"]:
         if field and field.get("id") == field_id:
             for opt in field.get("options") or []:
-                if opt["name"] == name:
+                available.append(opt["name"])
+                if opt["name"].strip().casefold() == target:
                     return opt["id"]
-    raise RuntimeError(f"Column option {name!r} not found for field {field_id}")
+    raise RuntimeError(
+        f"Column option {name!r} not found for field {field_id}. "
+        f"Available options: {available}"
+    )
 
 
 def set_board_column(project_id: str, item_id: str, field_id: str, column_name: str) -> None:
