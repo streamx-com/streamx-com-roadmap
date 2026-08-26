@@ -46,7 +46,10 @@ jobs:
       - name: Keepalive commit
         if: always()
         env:
-          KEEPALIVE_AFTER_DAYS: "45"
+          # 30, not 45: this step is evaluated weekly, so a 30-day gate commits
+          # around day 35 and leaves ~25 days of slack before GitHub's 60-day
+          # cutoff — enough to absorb several dropped scheduled runs.
+          KEEPALIVE_AFTER_DAYS: "30"
         run: |
           set -euo pipefail
           last_commit_ts="$(git log -1 --format=%ct)"
