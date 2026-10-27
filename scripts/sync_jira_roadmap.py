@@ -460,9 +460,9 @@ def sync_epic(
 ) -> None:
     key = epic["key"]
     title = cf(epic, "public_title", cfg)
-    body = cf(epic, "public_summary", cfg)
-    if not title or not body:
-        print(f"SKIP {key}: missing Public Roadmap Title or Summary")
+    body = cf(epic, "public_summary", cfg) or ""
+    if not title:
+        print(f"SKIP {key}: missing Public Roadmap Title")
         return
 
     gh, action = create_or_update_issue(
